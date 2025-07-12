@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Permissions-Policy" content="fullscreen=(self)">
+  <title>SyncStream - Real-Time Video Sync</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #4361ee;
+      --primary-light: #4cc9f0;
+      --secondary: #3a0ca3;
+      --accent: #f72585;
+      --dark: #1a1a2e;
+      --light: #f8f9fa;
+      --success: #4ade80;
+      --danger: #f87171;
+      --warning: #fbbf24;
+      --card-bg: rgba(255, 255, 255, 0.08);
+      --card-border: rgba(255, 255, 255, 0.1);
+    }
+
+    body {
+      background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+      color: var(--light);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Header Styles */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      margin-bottom: 2rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: white;
+    }
+
+    .logo i {
+      color: var(--accent);
+      font-size: 2.2rem;
+    }
+
+    /* Card Styles */
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border-radius: 1.5rem;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      transition: all 0.3s ease;
+    }
+
+    /* Video Container */
+    .video-container {
+      position: relative;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+      border-radius: 1rem;
+      background: #000;
+      margin-bottom: 1.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .video-container.fullscreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1000;
+      padding-bottom: 0;
+      border-radius: 0;
+    }
+
+    .video-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #video-player {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Fullscreen Button */
+    .fullscreen-btn {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      border: none;
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.3s ease;
+    }
+
+    .fullscreen-btn:hover {
+      background: rgba(0, 0, 0, 0.9);
+      transform: scale(1.1);
+    }
+
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      border: none;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 0 0 2px var(--primary-light);
+    }
+
+    /* Button Styles */
+    .btn {
+      padding: 0.8rem 1.5rem;
+      border-radius: 0.75rem;
+      border: none;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(45deg, var(--primary), var(--primary-light));
+      color: white;
+      box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Tab Styles */
+    .tab-container {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.5rem;
+      border-radius: 0.75rem;
+    }
+
+    .tab {
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+      flex: 1;
+    }
+
+    .tab.active {
+      background: var(--primary);
+      box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+    }
+
+    /* Participants List */
+    .participants {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .participant-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: all 0.3s ease;
+    }
+
+    .participant-card:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-3px);
+    }
+
+    .participant-avatar {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      background: linear-gradient(45deg, var(--primary), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--success);
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 0.75rem;
+      box-shadow: 0 10px 25px rgba(74, 222, 128, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      z-index: 1000;
+      opacity: 0;
+      transform: translateY(100px);
+      transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.error {
+      background: var(--danger);
+      box-shadow: 0 10px 25px rgba(248, 113, 113, 0.3);
+    }
+
+    /* Server Status */
+    .server-status {
+      position: fixed;
+      bottom: 1rem;
+      left: 1rem;
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .server-status.connected .status-indicator {
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+    }
+
+    /* Hidden Class */
+    .hidden {
+      display: none;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .logo {
+        font-size: 1.5rem;
+      }
+      
+      .card {
+        padding: 1.5rem;
+      }
+      
+      .video-controls {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    /* Video Controls */
+    .video-controls {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    /* Room ID Display */
+    .room-id-display {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.75rem 1.25rem;
+      border-radius: 0.75rem;
+      margin-bottom: 1.5rem;
+      font-family: monospace;
+      font-size: 1.1rem;
+    }
+
+    .btn-sm {
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      margin-left: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <i class="fas fa-film"></i>
+        <h1>SyncStream</h1>
+      </div>
+      <div id="user-info">
+        <div class="participant-card">
+          <div class="participant-avatar" id="user-avatar">U</div>
+          <div id="username">Guest</div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- Home Screen -->
+      <div class="card" id="home-screen">
+        <h2 class="card-title"><i class="fas fa-video"></i> Watch Videos Together</h2>
+        <p>Create a room or join an existing one to watch videos in sync with friends.</p>
+        
+        <div class="tab-container">
+          <div class="tab active" id="create-tab">Create Room</div>
+          <div class="tab" id="join-tab">Join Room</div>
+        </div>
+        
+        <div id="create-room-section">
+          <div class="form-group">
+            <label for="username-input">Your Name</label>
+            <input type="text" id="username-input" placeholder="Enter your name">
+          </div>
+          <button class="btn btn-primary" id="create-room-btn">
+            <i class="fas fa-plus"></i> Create Room
+          </button>
+        </div>
+        
+        <div id="join-room-section" class="hidden">
+          <div class="form-group">
+            <label for="join-username">Your Name</label>
+            <input type="text" id="join-username" placeholder="Enter your name">
+          </div>
+          <div class="form-group">
+            <label for="room-id-input">Room ID</label>
+            <input type="text" id="room-id-input" placeholder="Enter room ID">
+          </div>
+          <button class="btn btn-primary" id="join-room-btn">
+            <i class="fas fa-sign-in-alt"></i> Join Room
+          </button>
+        </div>
+      </div>
+      
+      <!-- Room Screen -->
+      <div class="card hidden" id="room-screen">
+        <h2 class="card-title"><i class="fas fa-users"></i> Room: <span id="room-id-display"></span></h2>
+        
+        <div class="room-id-display">
+          <i class="fas fa-key"></i>
+          <span id="current-room-id"></span>
+          <button class="btn btn-secondary btn-sm" id="copy-room-id">
+            <i class="fas fa-copy"></i> Copy
+          </button>
+        </div>
+        
+        <div class="video-container" id="video-container">
+          <div class="video-wrapper" id="video-wrapper">
+            <iframe id="video-player" allowfullscreen></iframe>
+          </div>
+          <button class="fullscreen-btn" id="fullscreen-btn" title="Toggle Fullscreen">
+            <i class="fas fa-expand"></i>
+          </button>
+        </div>
+        
+        <div class="form-group">
+          <label for="video-input">Video URL</label>
+          <input type="text" id="video-input" placeholder="https://www.youtube.com/watch?v=... or any video URL">
+        </div>
+        
+        <div class="video-controls" id="owner-controls">
+          <button class="btn btn-primary" id="load-video-btn">
+            <i class="fas fa-play"></i> Load Video
+          </button>
+          <button class="btn btn-secondary" id="play-btn">
+            <i class="fas fa-play"></i> Play
+          </button>
+          <button class="btn btn-secondary" id="pause-btn">
+            <i class="fas fa-pause"></i> Pause
+          </button>
+          <button class="btn btn-secondary" id="sync-btn">
+            <i class="fas fa-sync"></i> Sync
+          </button>
+        </div>
+        
+        <div>
+          <h3 class="card-title"><i class="fas fa-users"></i> Participants</h3>
+          <div class="participants" id="participants-list"></div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+          <button class="btn btn-secondary" id="leave-room-btn">
+            <i class="fas fa-sign-out-alt"></i> Leave Room
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <div class="toast" id="toast">
+    <i class="fas fa-check-circle"></i>
+    <span id="toast-message"></span>
+  </div>
+  
+  <div class="server-status" id="server-status">
+    <span class="status-indicator"></span>
+    <span id="connection-status">Connecting to server...</span>
+  </div>
+
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script>
+    // State management
+    const state = {
+      socket: null,
+      currentRoom: null,
+      isOwner: false,
+      userId: Math.random().toString(36).substring(2, 10),
+      username: '',
+      participants: {},
+      videoState: {
+        url: '',
+        playing: false,
+        position: 0
+      },
+      lastUpdate: 0
+    };
+
+    // DOM elements
+    const elements = {
+      homeScreen: document.getElementById('home-screen'),
+      roomScreen: document.getElementById('room-screen'),
+      createRoomSection: document.getElementById('create-room-section'),
+      joinRoomSection: document.getElementById('join-room-section'),
+      createTab: document.getElementById('create-tab'),
+      joinTab: document.getElementById('join-tab'),
+      usernameInput: document.getElementById('username-input'),
+      joinUsernameInput: document.getElementById('join-username'),
+      roomIdInput: document.getElementById('room-id-input'),
+      createRoomBtn: document.getElementById('create-room-btn'),
+      joinRoomBtn: document.getElementById('join-room-btn'),
+      roomIdDisplay: document.getElementById('room-id-display'),
+      currentRoomId: document.getElementById('current-room-id'),
+      copyRoomIdBtn: document.getElementById('copy-room-id'),
+      videoContainer: document.getElementById('video-container'),
+      videoWrapper: document.getElementById('video-wrapper'),
+      videoPlayer: document.getElementById('video-player'),
+      videoInput: document.getElementById('video-input'),
+      loadVideoBtn: document.getElementById('load-video-btn'),
+      playBtn: document.getElementById('play-btn'),
+      pauseBtn: document.getElementById('pause-btn'),
+      syncBtn: document.getElementById('sync-btn'),
+      leaveRoomBtn: document.getElementById('leave-room-btn'),
+      participantsList: document.getElementById('participants-list'),
+      userAvatar: document.getElementById('user-avatar'),
+      usernameDisplay: document.getElementById('username'),
+      toast: document.getElementById('toast'),
+      toastMessage: document.getElementById('toast-message'),
+      serverStatus: document.getElementById('server-status'),
+      connectionStatus: document.getElementById('connection-status'),
+      fullscreenBtn: document.getElementById('fullscreen-btn')
+    };
+
+    // Initialize app
+    function init() {
+      setupEventListeners();
+      generateRandomUsername();
+      connectToServer();
+    }
+
+    // Connect to Socket.IO server
+    function connectToServer() {
+      state.socket = io('http://localhost:3000', {
+        transports: ['websocket'],
+        upgrade: false,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 3000,
+        withCredentials: true
+      });
+
+      // Socket event listeners
+      state.socket.on('connect', () => {
+        console.log('Connected to server');
+        elements.connectionStatus.textContent = 'Connected';
+        elements.serverStatus.classList.add('connected');
+      });
+
+      state.socket.on('disconnect', () => {
+        console.log('Disconnected from server');
+        elements.connectionStatus.textContent = 'Disconnected';
+        elements.serverStatus.classList.remove('connected');
+      });
+
+      state.socket.on('connect_error', (err) => {
+        console.error('Connection error:', err);
+        showToast('Connection error. Please refresh.', true);
+      });
+
+      state.socket.on('room_created', (roomData) => {
+        state.currentRoom = roomData.roomId;
+        state.isOwner = true;
+        showRoomScreen();
+        showToast(`Room ${roomData.roomId} created!`);
+      });
+
+      state.socket.on('room_joined', (roomData) => {
+        state.currentRoom = roomData.roomId;
+        state.isOwner = false;
+        state.participants = roomData.participants;
+        state.videoState = roomData.videoState || { url: '', playing: false, position: 0 };
+        
+        if (state.videoState.url) {
+          elements.videoInput.value = state.videoState.url;
+          updateVideoPlayer();
+        }
+        
+        showRoomScreen();
+        renderParticipants();
+        showToast(`Joined room ${roomData.roomId}`);
+      });
+
+      state.socket.on('video_state_update', (videoState) => {
+        // Prevent rapid updates
+        if (Date.now() - state.lastUpdate < 500) return;
+        
+        state.videoState = videoState;
+        updateVideoPlayer();
+      });
+
+      state.socket.on('participant_joined', (participant) => {
+        state.participants[participant.id] = participant;
+        renderParticipants();
+        showToast(`${participant.username} joined`);
+      });
+
+      state.socket.on('participant_left', (participantId) => {
+        if (state.participants[participantId]) {
+          const username = state.participants[participantId].username;
+          delete state.participants[participantId];
+          renderParticipants();
+          showToast(`${username} left`);
+        }
+      });
+
+      state.socket.on('room_not_found', () => {
+        showToast('Room not found. Check the ID.', true);
+      });
+
+      state.socket.on('room_closed', () => {
+        showToast('Room closed by owner', true);
+        leaveRoom();
+      });
+
+      state.socket.on('request_sync', () => {
+        if (state.isOwner) {
+          broadcastVideoState();
+          showToast('Room sync requested');
+        }
+      });
+    }
+
+    // Set up event listeners
+    function setupEventListeners() {
+      // Tab switching
+      elements.createTab.addEventListener('click', () => switchTab('create'));
+      elements.joinTab.addEventListener('click', () => switchTab('join'));
+      
+      // Room actions
+      elements.createRoomBtn.addEventListener('click', createRoom);
+      elements.joinRoomBtn.addEventListener('click', joinRoom);
+      
+      // Video controls
+      elements.loadVideoBtn.addEventListener('click', loadVideo);
+      elements.playBtn.addEventListener('click', playVideo);
+      elements.pauseBtn.addEventListener('click', pauseVideo);
+      elements.syncBtn.addEventListener('click', requestSync);
+      
+      // Other UI
+      elements.copyRoomIdBtn.addEventListener('click', copyRoomId);
+      elements.leaveRoomBtn.addEventListener('click', leaveRoom);
+      elements.fullscreenBtn.addEventListener('click', toggleFullscreen);
+      
+      // Fullscreen events
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
+      document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.addEventListener('msfullscreenchange', handleFullscreenChange);
+      
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'f' || e.key === 'F') {
+          toggleFullscreen();
+        } else if (e.key === 'Escape' && isFullscreen()) {
+          exitFullscreen();
+        } else if (e.key === ' ' && state.currentRoom) {
+          if (state.videoState.playing) {
+            pauseVideo();
+          } else {
+            playVideo();
+          }
+        }
+      });
+    }
+
+    // Fullscreen functionality - FIXED
+    function isFullscreen() {
+      return document.fullscreenElement || 
+             document.webkitFullscreenElement || 
+             document.msFullscreenElement;
+    }
+
+    function toggleFullscreen() {
+      if (isFullscreen()) {
+        exitFullscreen();
+      } else {
+        // Request fullscreen on the video player element itself
+        enterFullscreen(elements.videoPlayer);
+      }
+    }
+
+    function enterFullscreen(element) {
+      if (!element) return;
+      
+      if (element.requestFullscreen) {
+        element.requestFullscreen().catch(err => {
+          console.error('Fullscreen error:', err);
+          showToast('Fullscreen not supported for this video', true);
+        });
+      } else if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen();
+      } else if (element.msRequestFullscreen) {
+        element.msRequestFullscreen();
+      } else if (element.webkitEnterFullscreen) {
+        // For iOS Safari
+        element.webkitEnterFullscreen();
+      }
+    }
+
+    function exitFullscreen() {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
+    }
+
+    function handleFullscreenChange() {
+      if (isFullscreen()) {
+        elements.videoContainer.classList.add('fullscreen');
+        elements.fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+      } else {
+        elements.videoContainer.classList.remove('fullscreen');
+        elements.fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+      }
+    }
+
+    // Room management
+    function createRoom() {
+      const username = elements.usernameInput.value.trim() || state.username;
+      
+      if (!username) {
+        showToast('Please enter your name', true);
+        return;
+      }
+      
+      state.username = username;
+      state.socket.emit('create_room', {
+        username: username,
+        userId: state.userId
+      });
+    }
+
+    function joinRoom() {
+      const username = elements.joinUsernameInput.value.trim() || state.username;
+      const roomId = elements.roomIdInput.value.trim().toUpperCase();
+      
+      if (!username) {
+        showToast('Please enter your name', true);
+        return;
+      }
+      
+      if (!roomId || roomId.length !== 6) {
+        showToast('Room ID must be 6 characters', true);
+        return;
+      }
+      
+      state.username = username;
+      state.socket.emit('join_room', {
+        roomId: roomId,
+        username: username,
+        userId: state.userId
+      });
+    }
+
+    // Video controls
+    function loadVideo() {
+      const url = elements.videoInput.value.trim();
+      
+      if (!url) {
+        showToast('Please enter a video URL', true);
+        return;
+      }
+      
+      state.videoState.url = url;
+      updateVideoPlayer();
+      
+      if (state.isOwner) {
+        broadcastVideoState();
+      }
+    }
+
+    function updateVideoPlayer() {
+      const url = state.videoState.url;
+      if (!url) return;
+      
+      // Clear previous player
+      elements.videoWrapper.innerHTML = '';
+      
+      let player;
+      
+      // Try to extract YouTube ID
+      const youtubeId = extractYouTubeId(url);
+      if (youtubeId) {
+        player = document.createElement('iframe');
+        player.src = `https://www.youtube.com/embed/${youtubeId}?enablejsapi=1`;
+        player.dataset.provider = 'youtube';
+      } 
+      // Try to extract Vimeo ID
+      else if (extractVimeoId(url)) {
+        const vimeoId = extractVimeoId(url);
+        player = document.createElement('iframe');
+        player.src = `https://player.vimeo.com/video/${vimeoId}`;
+        player.dataset.provider = 'vimeo';
+      } 
+      // Check for direct video files
+      else if (url.match(/\.(mp4|webm|ogg|mov|avi|mkv|m3u8)$/i)) {
+        player = document.createElement('video');
+        player.controls = true;
+        player.style.width = '100%';
+        player.style.height = '100%';
+        
+        const source = document.createElement('source');
+        source.src = url;
+        
+        const ext = url.split('.').pop().split('?')[0];
+        source.type = `video/${ext}`;
+        
+        player.appendChild(source);
+        player.dataset.provider = 'html5';
+        
+        // Add event listeners for HTML5 video
+        player.addEventListener('play', () => {
+          if (state.isOwner) {
+            state.videoState.playing = true;
+            broadcastVideoState();
+          }
+        });
+        
+        player.addEventListener('pause', () => {
+          if (state.isOwner) {
+            state.videoState.playing = false;
+            broadcastVideoState();
+          }
+        });
+      } 
+      // Generic iframe for any URL
+      else {
+        player = document.createElement('iframe');
+        player.src = url;
+        player.dataset.provider = 'iframe';
+      }
+      
+      // Set common attributes
+      player.id = 'video-player';
+      player.allowFullscreen = true;
+      player.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+      player.style.width = '100%';
+      player.style.height = '100%';
+      player.style.border = 'none';
+      
+      elements.videoWrapper.appendChild(player);
+      elements.videoPlayer = player;
+      
+      // Update player state
+      setTimeout(() => {
+        if (state.videoState.playing) {
+          playVideo();
+        } else {
+          pauseVideo();
+        }
+      }, 1000);
+    }
+
+    function playVideo() {
+      const provider = elements.videoPlayer.dataset.provider;
+      
+      if (provider === 'youtube') {
+        try {
+          elements.videoPlayer.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+          state.videoState.playing = true;
+          broadcastVideoState();
+        } catch (e) {
+          showToast('YouTube playback control failed', true);
+        }
+      } else if (provider === 'html5') {
+        try {
+          elements.videoPlayer.play();
+          state.videoState.playing = true;
+          broadcastVideoState();
+        } catch (e) {
+          showToast('Video playback failed', true);
+        }
+      } else {
+        // Generic play method for iframes
+        try {
+          // Focus the iframe and simulate space key press
+          elements.videoPlayer.contentWindow.focus();
+          const spaceEvent = new KeyboardEvent('keydown', {key: ' ', code: 'Space', keyCode: 32, which: 32});
+          elements.videoPlayer.contentWindow.document.dispatchEvent(spaceEvent);
+          
+          // Update state optimistically
+          state.videoState.playing = true;
+          if (state.isOwner) {
+            broadcastVideoState();
+          }
+        } catch (e) {
+          showToast('Could not control this player', true);
+        }
+      }
+    }
+
+    function pauseVideo() {
+      const provider = elements.videoPlayer.dataset.provider;
+      
+      if (provider === 'youtube') {
+        try {
+          elements.videoPlayer.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+          state.videoState.playing = false;
+          broadcastVideoState();
+        } catch (e) {
+          showToast('YouTube playback control failed', true);
+        }
+      } else if (provider === 'html5') {
+        try {
+          elements.videoPlayer.pause();
+          state.videoState.playing = false;
+          broadcastVideoState();
+        } catch (e) {
+          showToast('Video pause failed', true);
+        }
+      } else {
+        // Generic pause method for iframes
+        try {
+          // Focus the iframe and simulate space key press
+          elements.videoPlayer.contentWindow.focus();
+          const spaceEvent = new KeyboardEvent('keydown', {key: ' ', code: 'Space', keyCode: 32, which: 32});
+          elements.videoPlayer.contentWindow.document.dispatchEvent(spaceEvent);
+          
+          // Update state optimistically
+          state.videoState.playing = false;
+          if (state.isOwner) {
+            broadcastVideoState();
+          }
+        } catch (e) {
+          showToast('Could not control this player', true);
+        }
+      }
+    }
+
+    function requestSync() {
+      state.socket.emit('request_sync', state.currentRoom);
+      showToast('Requesting sync from room owner...');
+    }
+
+    function broadcastVideoState() {
+      state.lastUpdate = Date.now();
+      state.socket.emit('update_video_state', {
+        roomId: state.currentRoom,
+        url: state.videoState.url,
+        playing: state.videoState.playing,
+        position: state.videoState.position
+      });
+    }
+
+    // UI functions
+    function showRoomScreen() {
+      elements.homeScreen.classList.add('hidden');
+      elements.roomScreen.classList.remove('hidden');
+      elements.roomIdDisplay.textContent = state.currentRoom;
+      elements.currentRoomId.textContent = state.currentRoom;
+      
+      if (state.isOwner) {
+        document.getElementById('owner-controls').classList.remove('hidden');
+      } else {
+        document.getElementById('owner-controls').classList.add('hidden');
+      }
+      
+      updateUserDisplay();
+    }
+
+    function renderParticipants() {
+      elements.participantsList.innerHTML = '';
+      
+      for (const id in state.participants) {
+        const participant = state.participants[id];
+        const participantElement = document.createElement('div');
+        participantElement.className = 'participant-card';
+        
+        const firstLetter = participant.username.charAt(0).toUpperCase();
+        
+        participantElement.innerHTML = `
+          <div class="participant-avatar">${firstLetter}</div>
+          <div>${participant.username}</div>
+          ${participant.isOwner ? '<div style="margin-left: auto; background: var(--accent); padding: 2px 8px; border-radius: 12px; font-size: 0.8rem;">Owner</div>' : ''}
+        `;
+        
+        elements.participantsList.appendChild(participantElement);
+      }
+    }
+
+    function updateUserDisplay() {
+      elements.usernameDisplay.textContent = state.username;
+      elements.userAvatar.textContent = state.username.charAt(0).toUpperCase();
+    }
+
+    function showToast(message, isError = false) {
+      elements.toastMessage.textContent = message;
+      elements.toast.classList.toggle('error', isError);
+      elements.toast.classList.add('show');
+      setTimeout(() => elements.toast.classList.remove('show'), 3000);
+    }
+
+    function copyRoomId() {
+      navigator.clipboard.writeText(state.currentRoom);
+      showToast('Room ID copied to clipboard!');
+    }
+
+    function leaveRoom() {
+      if (state.socket && state.currentRoom) {
+        state.socket.emit('leave_room', {
+          roomId: state.currentRoom,
+          userId: state.userId
+        });
+      }
+      
+      state.currentRoom = null;
+      state.isOwner = false;
+      state.participants = {};
+      state.videoState = { url: '', playing: false, position: 0 };
+      
+      elements.roomScreen.classList.add('hidden');
+      elements.homeScreen.classList.remove('hidden');
+    }
+
+    // Helper functions
+    function generateRandomUsername() {
+      const adjectives = ['Happy', 'Silly', 'Clever', 'Brave', 'Gentle', 'Witty', 'Calm', 'Jolly'];
+      const nouns = ['Tiger', 'Eagle', 'Dolphin', 'Panda', 'Fox', 'Wolf', 'Lion', 'Bear'];
+      const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+      const noun = nouns[Math.floor(Math.random() * nouns.length)];
+      const num = Math.floor(Math.random() * 1000);
+      
+      const username = `${adj}${noun}${num}`;
+      elements.usernameInput.value = username;
+      elements.joinUsernameInput.value = username;
+      state.username = username;
+      updateUserDisplay();
+    }
+
+    function switchTab(tab) {
+      if (tab === 'create') {
+        elements.createTab.classList.add('active');
+        elements.joinTab.classList.remove('active');
+        elements.createRoomSection.classList.remove('hidden');
+        elements.joinRoomSection.classList.add('hidden');
+      } else {
+        elements.joinTab.classList.add('active');
+        elements.createTab.classList.remove('active');
+        elements.joinRoomSection.classList.remove('hidden');
+        elements.createRoomSection.classList.add('hidden');
+      }
+    }
+
+    function extractYouTubeId(url) {
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[2].length === 11) ? match[2] : null;
+    }
+
+    function extractVimeoId(url) {
+      const regExp = /^.*(vimeo.com\/|player.vimeo.com\/video\/)([0-9]+)/;
+      const match = url.match(regExp);
+      return match ? match[2] : null;
+    }
+
+    // Initialize the app
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
